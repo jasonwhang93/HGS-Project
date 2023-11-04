@@ -15,6 +15,7 @@ TagManager:
   - QuestUIController
   - Money
   - Ground
+  - Cylinder
   layers:
   - Default
   - TransparentFX

@@ -9,6 +9,11 @@ public class Map2MoveController : MonoBehaviour
     public GameObject upGround; // UpGround 게임 오브젝트에 대한 참조
     public GameObject cylinderObject; // CylinderObject에 대한 참조 추가
 
+
+    public Transform[] respawnPoints; // 리스폰 지점들
+    private Vector3 lastFallPosition; // 플레이어가 화면 밖으로 벗어날 때의 마지막 위치
+
+
     private Collider2D upGroundCollider;
     private Collider2D cylinderObjectCollider; // CylinderObject의 Collider
 
@@ -42,6 +47,8 @@ public class Map2MoveController : MonoBehaviour
         Jump();
         HandlePlatformEffectorCollision(upGroundCollider); // UpGround 처리
         HandlePlatformEffectorCollision(cylinderObjectCollider); // CylinderObject 처리
+
+        CheckFallOffScreen();
 
         // Animator 변수 업데이트
         animator.SetBool("isGrounded", isGrounded);
@@ -77,6 +84,42 @@ public class Map2MoveController : MonoBehaviour
             rb.AddForce(new Vector2(0f, jumpForce), ForceMode2D.Impulse);
             isGrounded = false;
         }
+    }
+
+    // 플레이어가 화면 밖으로 벗어나는지 확인하고 마지막 위치를 저장하는 메서드
+    private void CheckFallOffScreen()
+    {
+        Camera mainCamera = Camera.main;
+        float lowerCameraBound = mainCamera.transform.position.y - mainCamera.orthographicSize;
+
+        if (transform.position.y < lowerCameraBound)
+        {
+            lastFallPosition = transform.position; // 마지막 위치 저장
+            RespawnAtNearestPoint();
+        }
+    }
+
+    private void RespawnAtNearestPoint()
+    {
+        // 저장된 마지막 위치와 가장 가까운 리스폰 지점 찾기
+        float nearestRespawnDistance = float.MaxValue;
+        Transform nearestRespawnPoint = null;
+        foreach (var respawnPoint in respawnPoints)
+        {
+            float distance = Mathf.Abs(lastFallPosition.x - respawnPoint.position.x);
+            if (distance < nearestRespawnDistance)
+            {
+                nearestRespawnDistance = distance;
+                nearestRespawnPoint = respawnPoint;
+            }
+        }
+
+        // 가장 가까운 리스폰 지점으로 이동
+        transform.position = nearestRespawnPoint.position;
+        rb.velocity = Vector2.zero; // 속도를 리셋합니다.
+
+        // 카메라의 위치를 리스폰 지점으로 이동시킵니다.
+        Camera.main.GetComponent<Map2CameraFollow>().RespawnCamera(nearestRespawnPoint.position);
     }
 
     // HandlePlatformEffectorCollision 메소드를 변경하여 다양한 플랫폼을 처리할 수 있도록 함

@@ -60,14 +60,30 @@ public class Map2CameraFollow : MonoBehaviour
         float playerWidth = playerCollider.size.x * player.localScale.x / 2; // 플레이어 너비의 절반
         float playerHeight = playerCollider.size.y * player.localScale.y / 2; // 플레이어 높이의 절반
 
+        // 카메라 뷰를 기준으로 플레이어의 이동 가능한 최대, 최소 X 좌표를 계산합니다.
         float targetMaxX = transform.position.x + cameraHalfWidth - playerWidth;
         float targetMinX = transform.position.x - cameraHalfWidth + playerWidth;
-        float targetMaxY = transform.position.y + cameraHalfHeight - playerHeight;
-        float targetMinY = transform.position.y - cameraHalfHeight + playerHeight;
 
+        // 카메라 뷰를 기준으로 플레이어의 이동 가능한 최대 Y 좌표를 계산합니다.
+        // 아래로 떨어지는 경우에는 Y축 제한을 두지 않습니다.
+        float targetMaxY = transform.position.y + cameraHalfHeight - playerHeight;
+
+        // 플레이어의 현재 Y 좌표가 yBottomLimit보다 낮으면 Y 좌표 제한을 적용하지 않습니다.
+        // 이렇게 하면 플레이어가 아래로 떨어질 때 화면 밖으로 벗어날 수 있습니다.
         player.position = new Vector3(
             Mathf.Clamp(player.position.x, targetMinX, targetMaxX),
-            Mathf.Clamp(player.position.y, targetMinY, targetMaxY),
+            player.position.y < yBottomLimit ? player.position.y : Mathf.Clamp(player.position.y, yBottomLimit, targetMaxY),
             player.position.z);
+    }
+
+    public void RespawnCamera(Vector3 playerPosition)
+    {
+        Vector3 newCameraPosition = transform.position;
+
+        // 플레이어의 리스폰 위치를 기준으로 카메라의 위치를 재설정합니다.
+        newCameraPosition.x = Mathf.Clamp(playerPosition.x, xLeftLimit + cameraHalfWidth, xRightLimit - cameraHalfWidth);
+        newCameraPosition.y = Mathf.Clamp(playerPosition.y, yBottomLimit + cameraHalfHeight, yTopLimit - cameraHalfHeight);
+
+        transform.position = newCameraPosition;
     }
 }

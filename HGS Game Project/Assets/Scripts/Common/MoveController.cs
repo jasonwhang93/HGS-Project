@@ -38,9 +38,6 @@ public class MoveController : MonoBehaviour
     bool isJumping = false;
     bool isGrounded = false;
 
-    bool isProneKeyPreesed = false;
-    bool isProne = false;
-
     float clickTime = 0f; // 마지막 클릭 시간
     float clickDelay = 0.5f; // 더블 클릭으로 간주할 최대 시간 간격
 
@@ -80,15 +77,6 @@ public class MoveController : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.Space) && !isRope && !isLadder)
         {
             isJumpKeyPressed = true;
-        }
-
-        if (Input.GetKey(KeyCode.LeftAlt))
-        {
-            isProneKeyPreesed = true;
-        }
-        if (Input.GetKeyUp(KeyCode.LeftAlt))
-        {
-            isProneKeyPreesed = false;
         }
 
         if (Input.GetKeyDown(KeyCode.LeftControl))
@@ -133,6 +121,12 @@ public class MoveController : MonoBehaviour
         // Ladder Interaction
         if (isOnLadder && verticalMove != 0)
         {
+            // Check if a ladder tile exists below the player when moving downward
+            if (verticalMove < 0 && !HasTileBelow(ladderTilemap))
+            {
+                return;
+            }
+
             isLadder = true;
             isJumping = false;  // Ensure the player is not in jumping state
             rigidBody2D.velocity = new Vector2(0, verticalMove * moveSpeed);
@@ -153,6 +147,7 @@ public class MoveController : MonoBehaviour
         if (isLadder && verticalMove < 0)
         {
             RaycastHit2D hit = Physics2D.Raycast(transform.position, Vector2.down, 0.5f, UpGroundLayer);
+
             if (hit.collider != null && hit.collider.CompareTag("UpGround"))
             {
                 Physics2D.IgnoreCollision(col2D, hit.collider, true);
@@ -182,15 +177,8 @@ public class MoveController : MonoBehaviour
                 isJumpKeyPressed = false;
                 isJumping = true;
             }
-
-            if (isProneKeyPreesed == true && isGrounded == true)
-            {
-                isProne = true;
-            }
-            if (isProneKeyPreesed == false) isProne = false;
         }
     }
-
 
 
     private void SetMoveDir()
@@ -237,46 +225,61 @@ public class MoveController : MonoBehaviour
         }
     }
 
+    private bool HasTileBelow(Tilemap tilemap)
+    {
+        Vector3 footPosition = col2D.bounds.center + new Vector3(0, -col2D.bounds.extents.y - 0.1f, 0);  // Just below the feet
+        Vector3Int cellPosition = tilemap.WorldToCell(footPosition);
+        return tilemap.HasTile(cellPosition);
+    }
+
+    private bool HasTileAbove(Tilemap tilemap)
+    {
+        Vector3 headPosition = col2D.bounds.center + new Vector3(0, col2D.bounds.extents.y + 0.1f, 0);  // Just above the head
+        Vector3Int cellPosition = tilemap.WorldToCell(headPosition);
+        return tilemap.HasTile(cellPosition);
+    }
+
 
     private void CheckRopeInteraction()
     {
-        RaycastHit2D hit = Physics2D.BoxCast(col2D.bounds.center, col2D.bounds.size, 0f, Vector2.up, 0.02f, RopeLayer);
-
-        if (hit.collider != null)
-        {
-            isOnRope = true;
-
-            // 타일의 실제 중심 위치 계산
-            var tilemap = hit.collider.GetComponent<Tilemap>();
-            Vector3Int cellPosition = tilemap.WorldToCell(hit.point);
-            Vector3 tileCenter = tilemap.GetCellCenterWorld(cellPosition);
-
-            // 밧줄의 중심 위치 설정 (타일의 중심에서 -0.24f만큼 오프셋)
-            ropeTileCenter = tileCenter + new Vector3(-0.2f, 0, 0);
-        }
-        else
-        {
-            isOnRope = false;
-            isRope = false;
-        }
+        CheckTileInteraction(ref isOnRope, ref isRope, ref ropeTileCenter, RopeLayer, -0.2f);
     }
 
     private void CheckLadderInteraction()
     {
-        RaycastHit2D hit = Physics2D.BoxCast(col2D.bounds.center, col2D.bounds.size, 0f, Vector2.up, 0.02f, LadderLayer);
+        CheckTileInteraction(ref isOnLadder, ref isLadder, ref ladderTileCenter, LadderLayer, 0);
+    }
+
+    private void CheckTileInteraction(ref bool isOnTile, ref bool isTile, ref Vector3 tileCenter, LayerMask tileLayer, float offset)
+    {
+        RaycastHit2D hit = Physics2D.BoxCast(col2D.bounds.center, col2D.bounds.size, 0f, Vector2.up, 0.02f, tileLayer);
 
         if (hit.collider != null)
         {
-            isOnLadder = true;
+            isOnTile = true;
+            Debug.Log("On Tile: " + hit.collider.name);
 
+            // Get the tile's actual center position
             var tilemap = hit.collider.GetComponent<Tilemap>();
             Vector3Int cellPosition = tilemap.WorldToCell(hit.point);
-            Vector3 tileCenter = tilemap.GetCellCenterWorld(cellPosition);
-            ladderTileCenter = tileCenter; // Ladder는 Tile의 중앙에 위치하기 때문에 추가 오프셋 없음
+            Vector3 actualTileCenter = tilemap.GetCellCenterWorld(cellPosition);
+
+            // Apply the offset
+            tileCenter = actualTileCenter + new Vector3(offset, 0, 0);
         }
         else
         {
-            isOnLadder = false;
+            isOnTile = false;
+            isTile = false;
+            Debug.Log("Not on any tile");
+
+            // Check if we have an ignored collider and if it's "Floor3 Top"
+            if (ignoredCollider != null && ignoredCollider.name == "Floor3 Top")
+            {
+                Debug.Log("Stopped ignoring collision with: " + ignoredCollider.name);
+                Physics2D.IgnoreCollision(col2D, ignoredCollider, false);
+                ignoredCollider = null;
+            }
         }
     }
 
@@ -284,9 +287,9 @@ public class MoveController : MonoBehaviour
     {
         anim.SetBool("isWalk", horizontalMove != 0);
         anim.SetBool("isJump", isJumping);
-        anim.SetBool("isProne", isProne);
         anim.SetBool("isRope", isRope);
         anim.SetBool("isLadder", isLadder);
+        anim.SetBool("isGrounded", isGrounded);
     }
 
     private void UserKeySetting()

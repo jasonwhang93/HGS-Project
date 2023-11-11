@@ -6,9 +6,7 @@ using UnityEngine.SceneManagement;
 public class MapController : MonoBehaviour
 {
     public AudioClip backgroundMusicClip; // 배경 음악 클립
-    public bool isGameEnd;
-    public string sceneName;
-    public int questID;
+    public bool isMapClearFailed = false;
 
     // Start is called before the first frame update
     void Start()
@@ -28,20 +26,13 @@ public class MapController : MonoBehaviour
     private void Update()
     {
         // 게임이 끝났을 때의 처리
-        if (isGameEnd)
+        if (PlayerData.isMap1Cleared && !isMapClearFailed || PlayerData.isMap2Cleared && !isMapClearFailed)
         {
-            EndGame();
+            SceneManager.LoadScene("MainVillage");
         }
-    }
-
-    private void EndGame()
-    {
-        // 퀘스트의 상태를 클리어로 변경
-        PlayerData.isMap1Cleared = true;
-
-        isGameEnd = false;
-
-        // MainVillage 씬 로드
-        SceneManager.LoadScene("MainVillage");
+        if(isMapClearFailed)
+        {
+            SceneManager.LoadScene("MainVillage");
+        }
     }
 }

@@ -194,7 +194,7 @@ public class MonsterSpawner : MonoBehaviour
             audioManager.StopMusic();
         }
 
-        mapController.isGameEnd = true;
+        PlayerData.isMap1Cleared = true;
     }
 
     // UI 업데이트 함수

@@ -52,7 +52,7 @@ public class MoveController : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        if (!GameData.isPause)
+        if (!GameController.isPause)
         {
             UserKeySetting();
             CheckIsGrounded();

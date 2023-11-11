@@ -13,6 +13,10 @@ public class Map2MoveController : MonoBehaviour
     public Transform[] respawnPoints; // 리스폰 지점들
     private Vector3 lastFallPosition; // 플레이어가 화면 밖으로 벗어날 때의 마지막 위치
 
+    // UI 하트 이미지 참조를 위한 배열
+    public GameObject[] hearts;
+
+    public MapController mapController;
 
     private Collider2D upGroundCollider;
     private Collider2D cylinderObjectCollider; // CylinderObject의 Collider
@@ -39,6 +43,8 @@ public class Map2MoveController : MonoBehaviour
         // 캐릭터의 초기 스케일 설정 (오른쪽을 기본 방향으로 가정)
         characterScale = new Vector3(-Mathf.Abs(transform.localScale.x), transform.localScale.y, transform.localScale.z);
         transform.localScale = characterScale; // 오른쪽을 바라보도록 설정
+
+        PlayerData.InitData();
     }
 
     private void Update()
@@ -56,6 +62,14 @@ public class Map2MoveController : MonoBehaviour
         animator.SetBool("isJump", !isGrounded);
         animator.SetBool("isLadder", false);
         animator.SetBool("isRope", false);
+
+        if(PlayerData.playerRemainHeart <= 0)
+        {
+            // 모든 하트가 떨어진 경우, 게임 오버 처리를 할 수 있습니다.
+            PlayerData.playerEarnCoin = 0;
+            PlayerData.isMap2Cleared = false;
+            mapController.isMapClearFailed = true;
+        }
     }
 
     private void Move()
@@ -114,12 +128,20 @@ public class Map2MoveController : MonoBehaviour
             }
         }
 
+        // PlayerData의 하트 수를 감소시키고 UI 업데이트
+        if (PlayerData.playerRemainHeart > 0)
+        {
+            PlayerData.playerRemainHeart--;
+            UpdateHeartsUI();
+        }
+
         // 가장 가까운 리스폰 지점으로 이동
         transform.position = nearestRespawnPoint.position;
         rb.velocity = Vector2.zero; // 속도를 리셋합니다.
 
         // 카메라의 위치를 리스폰 지점으로 이동시킵니다.
-        Camera.main.GetComponent<Map2CameraFollow>().RespawnCamera(nearestRespawnPoint.position);
+        //Camera.main.GetComponent<Map2CameraFollow>().RespawnCamera(nearestRespawnPoint.position);
+        Camera.main.GetComponent<UniversalCameraFollow>().RespawnCamera(nearestRespawnPoint.position);
     }
 
     // HandlePlatformEffectorCollision 메소드를 변경하여 다양한 플랫폼을 처리할 수 있도록 함
@@ -144,6 +166,22 @@ public class Map2MoveController : MonoBehaviour
         isOnSide &= playerBounds.center.y > platformBounds.min.y && playerBounds.center.y < platformBounds.max.y;
 
         return isOnSide;
+    }
+
+    // UI의 하트 이미지를 업데이트하는 메서드
+    private void UpdateHeartsUI()
+    {
+        for (int i = 0; i < hearts.Length; i++)
+        {
+            if (i < PlayerData.playerRemainHeart)
+            {
+                hearts[i].SetActive(true);
+            }
+            else
+            {
+                hearts[i].SetActive(false);
+            }
+        }
     }
 
 

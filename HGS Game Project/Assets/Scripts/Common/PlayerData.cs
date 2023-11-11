@@ -29,6 +29,14 @@ public static class PlayerData
         isMap2Cleared = false;
     }
 
+    public static void InitData()
+    {
+        playerCurrentScore = 0;
+        playerRemainHeart = 3;
+        isMap1Cleared = false;
+        isMap2Cleared = false;
+    }
+
     public static void PrintData()
     {
         Debug.Log("playerMoney: " + playerMoney);

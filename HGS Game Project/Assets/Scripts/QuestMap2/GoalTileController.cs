@@ -11,6 +11,8 @@ public class GoalTileController : MonoBehaviour
 
     private Tilemap tilemap;
 
+    public MapController mapController;
+
     void Start()
     {
         tilemap = GetComponent<Tilemap>();
@@ -45,11 +47,7 @@ public class GoalTileController : MonoBehaviour
             {
                 // PlayerData에 현재 획득한 코인 정보를 저장합니다.
                 PlayerData.playerEarnCoin = int.Parse(coinText.text);
-
-                // 맵 클리어 신호를 주는 코드 (예: 다음 씬으로 전환)
-                // TODO: 여기에 맵 클리어 신호를 주는 코드를 추가합니다.
                 PlayerData.isMap2Cleared = true;
-                SceneManager.LoadScene("MainVillage");
             }
         }
     }

@@ -6,6 +6,9 @@ public class GameController : MonoBehaviour
 {
     public static GameController instance;
 
+    // GameData의 필드를 여기로 이동
+    public static bool isPause = false;
+
     private void Awake()
     {
         // 싱글턴 패턴 적용

@@ -58,11 +58,33 @@ public class TilemapController : MonoBehaviour
     // 이 메서드는 무시된 collider를 다시 활성화합니다.
     public void ResetIgnoredCollider(Collider2D playerCol)
     {
-        if (ignoredCollider != null && playerCol.bounds.max.y < ignoredCollider.bounds.min.y)
+        if (ignoredCollider != null)
         {
-            // collider의 충돌을 다시 활성화합니다.
             Physics2D.IgnoreCollision(playerCol, ignoredCollider, false);
             ignoredCollider = null;
+        }
+    }
+
+    public void IgnoreColliderOnDownward(Collider2D playerCol, string targetLayer)
+    {
+        // LayerMask 설정
+        int layerMask = 1 << LayerMask.NameToLayer(targetLayer);
+
+        // Player의 Collider를 일시적으로 비활성화
+        playerCol.enabled = false;
+
+        // PlayerController의 하단에서 아래로 Raycast 발사 (UpGround 레이어만 대상으로 함)
+        Vector2 rayStart = new Vector2(playerCol.bounds.center.x, playerCol.bounds.min.y);
+        RaycastHit2D hit = Physics2D.Raycast(rayStart, Vector2.down, 0.5f, layerMask);
+
+        // Player의 Collider를 다시 활성화
+        playerCol.enabled = true;
+
+        // UpGround 레이어에 해당하는 콜라이더를 찾았을 때만 처리
+        if (hit.collider != null && hit.collider.gameObject.layer == LayerMask.NameToLayer(targetLayer))
+        {
+            Debug.Log("Raycast Hit: " + hit.collider.name);
+            IgnoreCollider(playerCol, hit.collider);
         }
     }
 

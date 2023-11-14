@@ -102,66 +102,51 @@ public class PlayerController : MonoBehaviour
             isJumping = false;
             rigidBody2D.velocity = new Vector2(0, verticalMove * moveSpeed);
             transform.position = new Vector3(ropeTileCenter.x, transform.position.y, transform.position.z);
+
+            // 아래로 이동 중일 때 UpGround 콜라이더 무시
+            if (verticalMove < 0)
+            {
+                tilemapController.IgnoreColliderOnDownward(col2D, "UpGround");
+            }
         }
         else if (isRope && !isGrounded && verticalMove == 0)
         {
             rigidBody2D.gravityScale = 0;
             rigidBody2D.velocity = Vector2.zero;
-            isRope = true;
         }
         else
         {
             isRope = false;
         }
 
-        // Check if player is trying to move down on the rope
-        if (isRope && verticalMove < 0)
-        {
-            RaycastHit2D hit = Physics2D.Raycast(transform.position, Vector2.down, 0.5f, tilemapController.UpGroundLayer);
-            if (hit.collider != null && hit.collider.CompareTag("UpGround"))
-            {
-                tilemapController.IgnoreCollider(col2D, hit.collider);
-            }
-        }
-
         // Ladder Interaction
         if (isOnLadder && verticalMove != 0)
         {
-            // Check if a ladder tile exists below the player when moving downward
-            if (verticalMove < 0 && !tilemapController.HasTileBelow(col2D, tilemapController.GetLadderTilemap()))
-            {
-                return;
-            }
-
             isLadder = true;
-            isJumping = false;  // Ensure the player is not in jumping state
+            isJumping = false;
             rigidBody2D.velocity = new Vector2(0, verticalMove * moveSpeed);
             transform.position = new Vector3(ladderTileCenter.x, transform.position.y, transform.position.z);
+
+            // 아래로 이동 중일 때 UpGround 콜라이더 무시
+            if (verticalMove < 0)
+            {
+                tilemapController.IgnoreColliderOnDownward(col2D, "UpGround");
+            }
         }
         else if (isLadder && !isGrounded && verticalMove == 0)
         {
             rigidBody2D.gravityScale = 0;
             rigidBody2D.velocity = Vector2.zero;
-            isLadder = true;
         }
         else
         {
             isLadder = false;
         }
 
-        // Check if player is trying to move down on the ladder
-        if (isLadder && verticalMove < 0)
+        if(!isGrounded && !isOnRope && !isOnLadder)
         {
-            RaycastHit2D hit = Physics2D.Raycast(transform.position, Vector2.down, 0.5f, tilemapController.UpGroundLayer);
-
-            if (hit.collider != null && hit.collider.CompareTag("UpGround"))
-            {
-                tilemapController.IgnoreCollider(col2D, hit.collider);
-            }
+            tilemapController.ResetIgnoredCollider(col2D);
         }
-
-        // Handle ignored colliders for rope and ladder
-        tilemapController.ResetIgnoredCollider(col2D);
 
         // Normal Movement
         if (!isRope && !isLadder)
@@ -178,6 +163,7 @@ public class PlayerController : MonoBehaviour
         }
     }
 
+
     private void SetMoveDir()
     {
         if (horizontalMove < 0) transform.localScale = new Vector3(1, 1, 1);
@@ -190,7 +176,10 @@ public class PlayerController : MonoBehaviour
 
         isGrounded = tilemapController.IsGrounded(col2D, ref wasGrounded);
 
-        if (isGrounded) isJumping = false;
+        if (isGrounded)
+        {
+            isJumping = false;
+        }
 
         // 밧줄에서 내려와 땅에 닿은 경우
         if (isRope && wasGrounded == false && isGrounded == true && rigidBody2D.velocity.y <= 0.1f)

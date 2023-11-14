@@ -92,11 +92,13 @@ public class TilemapController : MonoBehaviour
     {
         int combinedLayerMask = GroundLayer | UpGroundLayer;
         float extraHeight = 0.05f;
-        RaycastHit2D hit = Physics2D.Raycast(playerCol.bounds.center + new Vector3(0, -playerCol.bounds.extents.y, 0), Vector2.down, extraHeight, combinedLayerMask);
+        Vector2 boxSize = new Vector2(playerCol.bounds.size.x * 0.9f, extraHeight); // 콜라이더의 가로 길이의 일부와 추가 높이 사용
+        Vector2 boxCenter = new Vector2(playerCol.bounds.center.x, playerCol.bounds.min.y - extraHeight / 2); // 콜라이더 하단 중심 위치
 
-        wasGrounded = hit.collider != null;
+        Collider2D[] hits = Physics2D.OverlapBoxAll(boxCenter, boxSize, 0, combinedLayerMask);
 
-        return (hit.collider != null);
+        wasGrounded = hits.Length > 0;
+        return hits.Length > 0;
     }
 
     public bool HasTileBelow(Collider2D playerCol, Tilemap tilemap)

@@ -148,6 +148,12 @@ public class PlayerController : MonoBehaviour
             tilemapController.ResetIgnoredCollider(col2D);
         }
 
+        if(isGrounded && !tilemapController.HasTileBelow(col2D, tilemapController.GetLadderTilemap()) && 
+            tilemapController.HasTileAbove(col2D, tilemapController.GetLadderTilemap()))
+        {
+            tilemapController.ResetIgnoredCollider(col2D);
+        }
+
         // Normal Movement
         if (!isRope && !isLadder)
         {

@@ -9,10 +9,21 @@ public class TilemapController : MonoBehaviour
     public LayerMask LadderLayer;
     public LayerMask UpGroundLayer;
     public LayerMask GroundLayer;
-    public Collider2D ignoredCollider = null; // 무시된 collider를 저장할 변수
+    private Collider2D ignoredCollider = null; // 무시된 collider를 저장할 변수
+
+    public Collider2D floor2Side;
+    public TilemapCollider2D floor2TopTilemapCol;
+    public CompositeCollider2D floor2TopCompositeCol;
+    public TilemapCollider2D floor2StairTopTilemapCol;
+    public CompositeCollider2D floor2StairTopCompositeCol;
+
+    public Tilemap floor2StairTopTilemap;
+    public Vector3Int tilePosition; // 수정하고자 하는 타일의 위치
 
     private Tilemap ropeTilemap;
     private Tilemap ladderTilemap;
+
+    private List<Collider2D> ignoredColliders = new List<Collider2D>();
 
     void Awake()
     {
@@ -34,6 +45,36 @@ public class TilemapController : MonoBehaviour
         return null;
     }
 
+    // 겹쳐진 영역인지 확인
+    public bool IsOverlappingArea(Vector3Int tilePos)
+    {
+        // 플레이어의 현재 위치를 월드 좌표로 변환
+        Vector3 playerWorldPos = floor2StairTopTilemap.CellToWorld(tilePos);
+
+        // Floor2 Side 콜라이더 영역을 확인
+        if (floor2Side.OverlapPoint(playerWorldPos))
+        {
+            // Floor2 TopCompositeCol 콜라이더 영역을 확인
+            if (floor2TopCompositeCol.OverlapPoint(playerWorldPos))
+            {
+                // 두 영역이 겹침
+                return true;
+            }
+        }
+
+        // 겹치지 않음
+        return false;
+    }
+
+    public Vector3Int GetCurrentTilePosition(Transform player)
+    {
+        // 플레이어의 위치를 월드 좌표에서 셀 좌표로 변환
+        Vector3 worldPosition = player.transform.position;
+        Vector3Int cellPosition = floor2StairTopTilemap.WorldToCell(worldPosition);
+
+        return cellPosition;
+    }
+
     public Tilemap GetRopeTilemap()
     {
         return ropeTilemap;
@@ -47,21 +88,36 @@ public class TilemapController : MonoBehaviour
     // 이 메서드는 특정 collider를 무시합니다.
     public void IgnoreCollider(Collider2D playerCol, Collider2D colliderToIgnore)
     {
-        if (ignoredCollider == null)
+        if (!ignoredColliders.Contains(colliderToIgnore))
         {
-            ignoredCollider = colliderToIgnore;
-            // 로직에 따라 필요한 처리를 수행합니다.
-            Physics2D.IgnoreCollision(playerCol, colliderToIgnore, true); // 이 부분이 추가되었습니다.
+            ignoredColliders.Add(colliderToIgnore);
+            Physics2D.IgnoreCollision(playerCol, colliderToIgnore, true);
         }
     }
 
-    // 이 메서드는 무시된 collider를 다시 활성화합니다.
+    public void IgnoreColliders(Collider2D playerCol, Collider2D[] collidersToIgnore)
+    {
+        foreach (var collider in collidersToIgnore)
+        {
+            IgnoreCollider(playerCol, collider);
+        }
+    }
+
     public void ResetIgnoredCollider(Collider2D playerCol)
     {
-        if (ignoredCollider != null)
+        foreach (var ignoredCollider in ignoredColliders)
         {
             Physics2D.IgnoreCollision(playerCol, ignoredCollider, false);
-            ignoredCollider = null;
+        }
+        ignoredColliders.Clear();
+    }
+
+    public void ResetIgnoredColliderAtSpecificTile(Collider2D playerCol, Vector3Int tilePos)
+    {
+        if (tilePos == new Vector3Int(11, -8, 0) || tilePos == new Vector3Int(10, -8, 0) || 
+            tilePos == new Vector3Int(-3, -8, 0) || tilePos == new Vector3Int(-4, -8, 0))
+        {
+            ResetIgnoredCollider(playerCol);
         }
     }
 

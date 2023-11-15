@@ -50,6 +50,28 @@ public class PlayerController : MonoBehaviour
             tilemapController.CheckLadderInteraction(col2D, ref isOnLadder, ref isLadder, ref ladderTileCenter);
             CheckAnimCondition();
             InputMoveValue();
+
+            // Floor1 Top에서 Floor2 StairSide 콜라이더 통과 로직
+            if ((IsPlayerOnFloor1Top() || !IsPlayerOnUpGround()) && !isJumping)
+            {
+                // Floor2 StairSide 콜라이더를 무시
+                tilemapController.IgnoreCollider(col2D, tilemapController.floor2Side);
+                tilemapController.IgnoreCollider(col2D, tilemapController.floor2StairTopTilemapCol);
+                tilemapController.IgnoreCollider(col2D, tilemapController.floor2StairTopCompositeCol);
+                tilemapController.IgnoreCollider(col2D, tilemapController.floor2TopTilemapCol);
+                tilemapController.IgnoreCollider(col2D, tilemapController.floor2TopCompositeCol);
+            }
+            else
+            {
+                // 콜라이더 무시 해제
+                tilemapController.ResetIgnoredCollider(col2D);
+            }
+
+            Vector3Int tilePosition = tilemapController.GetCurrentTilePosition(transform);
+
+            // 특정 타일 위치에서 콜라이더 무시 해제
+            tilemapController.ResetIgnoredColliderAtSpecificTile(col2D, tilePosition);
+            //Debug.Log("현재 타일 위치: " + tilePosition);
         }
     }
 
@@ -77,6 +99,34 @@ public class PlayerController : MonoBehaviour
         SetMoveDir();
     }
 
+    // HandleLanding 메소드 수정
+    private void HandleLanding()
+    {
+        if (!isJumping && isGrounded)
+        {
+            Vector3Int currentTilePosition = tilemapController.GetCurrentTilePosition(transform);
+
+            // 겹쳐진 영역이 아닌 경우에만 콜라이더 활성화
+            if (!tilemapController.IsOverlappingArea(currentTilePosition))
+            {
+                tilemapController.ResetIgnoredCollider(col2D);
+            }
+            else
+            {
+                Debug.Log("HandleLanding");
+                // 겹쳐진 영역인 경우, 계속 떨어짐
+                isGrounded = false;
+            }
+        }
+    }
+
+    private bool IsPlayerOnUpGround()
+    {
+        RaycastHit2D hit = Physics2D.Raycast(transform.position, Vector2.down, 1.0f, tilemapController.UpGroundLayer);
+
+        return hit.collider != null;
+    }
+
 
     private bool IsPlayerOnFloor1Top()
     {
@@ -85,9 +135,8 @@ public class PlayerController : MonoBehaviour
 
         if (hit.collider != null)
         {
-            // Raycast가 GroundLayer에 닿았는지 확인
-            // 여기서 추가적으로, 특정 타일 이름이나 태그로 Floor1 Top을 식별할 수 있으면 더 정확합니다.
-            return hit.collider.gameObject.layer == LayerMask.NameToLayer("Floor1 Ground");
+            // Raycast가 GroundLayer에 닿았고, 해당 오브젝트의 이름이 "Floor1 Top"인지 확인
+            return (hit.collider.gameObject.name == "Floor1 Top" || hit.collider.gameObject.name == "Floor1 SideTop");
         }
 
         return false;

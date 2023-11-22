@@ -272,8 +272,8 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 548459591}
-  m_RootOrder: 7
+  m_Father: {fileID: 1535448133}
+  m_RootOrder: 2
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!212 &196700730
 SpriteRenderer:
@@ -632,6 +632,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   coinText: {fileID: 1420619095}
+  mapController: {fileID: 1511025938}
 --- !u!1 &453537591
 GameObject:
   m_ObjectHideFlags: 0
@@ -803,14 +804,16 @@ MonoBehaviour:
   m_GameObject: {fileID: 519420028}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 6343d5714788a1f4c960ad780169f172, type: 3}
+  m_Script: {fileID: 11500000, guid: 7961b4df5085ba540b58931a4ecf2016, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   player: {fileID: 1214173098}
-  xLeftLimit: 1.36
-  xRightLimit: 110
-  yTopLimit: 20
-  yBottomLimit: 0.9
+  isMap2Camera: 1
+  smoothSpeed: 3
+  offset: {x: 0, y: 0}
+  adaptiveFollowSpeed: 1
+  followSpeedMultiplier: 2
+  enableBounds: 1
 --- !u!1 &548459589
 GameObject:
   m_ObjectHideFlags: 0
@@ -857,9 +860,6 @@ Transform:
   - {fileID: 779977454}
   - {fileID: 381300638}
   - {fileID: 1327602444}
-  - {fileID: 1049012518}
-  - {fileID: 912126648}
-  - {fileID: 196700729}
   m_Father: {fileID: 1511025937}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -5827,8 +5827,8 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 548459591}
-  m_RootOrder: 6
+  m_Father: {fileID: 1535448133}
+  m_RootOrder: 1
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!212 &912126649
 SpriteRenderer:
@@ -5911,8 +5911,8 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 548459591}
-  m_RootOrder: 5
+  m_Father: {fileID: 1535448133}
+  m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!212 &1049012523
 SpriteRenderer:
@@ -7053,7 +7053,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1214173097}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 33, y: 0, z: 0}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -7199,6 +7199,11 @@ MonoBehaviour:
   - {fileID: 1049012518}
   - {fileID: 912126648}
   - {fileID: 196700729}
+  hearts:
+  - {fileID: 1810721629}
+  - {fileID: 453537591}
+  - {fileID: 159107949}
+  mapController: {fileID: 1511025938}
 --- !u!1 &1327602443
 GameObject:
   m_ObjectHideFlags: 0
@@ -7834,6 +7839,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 548459591}
+  - {fileID: 1535448133}
   m_Father: {fileID: 0}
   m_RootOrder: 4
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -7850,9 +7856,44 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   backgroundMusicClip: {fileID: 8300000, guid: f3bedc4476a865e46a8960aa4a86b8c6, type: 3}
-  isGameEnd: 0
+  isMap1Cleared: 0
+  isMap2Cleared: 0
   sceneName: QuestMap2
   questID: 2
+--- !u!1 &1535448132
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1535448133}
+  m_Layer: 0
+  m_Name: RespawnObject
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1535448133
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1535448132}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 1049012518}
+  - {fileID: 912126648}
+  - {fileID: 196700729}
+  m_Father: {fileID: 1511025937}
+  m_RootOrder: 1
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1810721629
 GameObject:
   m_ObjectHideFlags: 0

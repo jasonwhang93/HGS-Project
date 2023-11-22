@@ -16,6 +16,8 @@ TagManager:
   - Money
   - Ground
   - Cylinder
+  - Stair
+  - Connect
   layers:
   - Default
   - TransparentFX
@@ -23,21 +25,21 @@ TagManager:
   - 
   - Water
   - UI
+  - Boundary
   - Ground
+  - UpGround
+  - GroundSide
   - Player
-  - PlayerHeadCol
+  - Rope
+  - Ladder
+  - NPC
+  - Portal
   - Monster
   - MonsterSpawnBox
   - MonsterQM2
-  - Portal
-  - Stair
-  - UpGround
+  - Money
   - Goal
   - EndBoxCol
-  - Ladder
-  - Rope
-  - NPC
-  - Money
   - 
   - 
   - 

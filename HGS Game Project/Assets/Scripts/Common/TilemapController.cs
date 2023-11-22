@@ -5,31 +5,25 @@ using UnityEngine.Tilemaps;
 
 public class TilemapController : MonoBehaviour
 {
+    public BackgroundGridController boundaryGrid;
+
     public LayerMask RopeLayer;
     public LayerMask LadderLayer;
     public LayerMask UpGroundLayer;
     public LayerMask GroundLayer;
-    private Collider2D ignoredCollider = null; // 무시된 collider를 저장할 변수
 
-    public Collider2D floor2Side;
-    public TilemapCollider2D floor2TopTilemapCol;
-    public CompositeCollider2D floor2TopCompositeCol;
+    public Tilemap ropeTilemap;
+    public Tilemap ladderTilemap;
+
+    // 계단 상호작용에 필요한 콜라이더 참조
+    public TilemapCollider2D floor1SideTopCol;
+
     public TilemapCollider2D floor2StairTopTilemapCol;
-    public CompositeCollider2D floor2StairTopCompositeCol;
 
-    public Tilemap floor2StairTopTilemap;
-    public Vector3Int tilePosition; // 수정하고자 하는 타일의 위치
-
-    private Tilemap ropeTilemap;
-    private Tilemap ladderTilemap;
+    public TilemapCollider2D floor3TopTilemapCol;
+    public CompositeCollider2D floor3TopCompositeCol;
 
     private List<Collider2D> ignoredColliders = new List<Collider2D>();
-
-    void Awake()
-    {
-        ropeTilemap = FindDeepChild(this.transform, "Rope").GetComponent<Tilemap>();
-        ladderTilemap = FindDeepChild(this.transform, "Ladder").GetComponent<Tilemap>();
-    }
 
     // 재귀적으로 자식 오브젝트를 검색하여 특정 이름을 가진 오브젝트를 찾는 함수
     private Transform FindDeepChild(Transform parent, string childName)
@@ -45,158 +39,175 @@ public class TilemapController : MonoBehaviour
         return null;
     }
 
-    // 겹쳐진 영역인지 확인
-    public bool IsOverlappingArea(Vector3Int tilePos)
-    {
-        // 플레이어의 현재 위치를 월드 좌표로 변환
-        Vector3 playerWorldPos = floor2StairTopTilemap.CellToWorld(tilePos);
-
-        // Floor2 Side 콜라이더 영역을 확인
-        if (floor2Side.OverlapPoint(playerWorldPos))
-        {
-            // Floor2 TopCompositeCol 콜라이더 영역을 확인
-            if (floor2TopCompositeCol.OverlapPoint(playerWorldPos))
-            {
-                // 두 영역이 겹침
-                return true;
-            }
-        }
-
-        // 겹치지 않음
-        return false;
-    }
-
-    public Vector3Int GetCurrentTilePosition(Transform player)
-    {
-        // 플레이어의 위치를 월드 좌표에서 셀 좌표로 변환
-        Vector3 worldPosition = player.transform.position;
-        Vector3Int cellPosition = floor2StairTopTilemap.WorldToCell(worldPosition);
-
-        return cellPosition;
-    }
-
-    public Tilemap GetRopeTilemap()
-    {
-        return ropeTilemap;
-    }
-
-    public Tilemap GetLadderTilemap()
-    {
-        return ladderTilemap;
-    }
-
-    // 이 메서드는 특정 collider를 무시합니다.
-    public void IgnoreCollider(Collider2D playerCol, Collider2D colliderToIgnore)
-    {
-        if (!ignoredColliders.Contains(colliderToIgnore))
-        {
-            ignoredColliders.Add(colliderToIgnore);
-            Physics2D.IgnoreCollision(playerCol, colliderToIgnore, true);
-        }
-    }
-
-    public void IgnoreColliders(Collider2D playerCol, Collider2D[] collidersToIgnore)
-    {
-        foreach (var collider in collidersToIgnore)
-        {
-            IgnoreCollider(playerCol, collider);
-        }
-    }
-
-    public void ResetIgnoredCollider(Collider2D playerCol)
-    {
-        foreach (var ignoredCollider in ignoredColliders)
-        {
-            Physics2D.IgnoreCollision(playerCol, ignoredCollider, false);
-        }
-        ignoredColliders.Clear();
-    }
-
-    public void ResetIgnoredColliderAtSpecificTile(Collider2D playerCol, Vector3Int tilePos)
-    {
-        if (tilePos == new Vector3Int(11, -8, 0) || tilePos == new Vector3Int(10, -8, 0) || 
-            tilePos == new Vector3Int(-3, -8, 0) || tilePos == new Vector3Int(-4, -8, 0))
-        {
-            ResetIgnoredCollider(playerCol);
-        }
-    }
-
-    public void IgnoreColliderOnDownward(Collider2D playerCol, string targetLayer)
-    {
-        // LayerMask 설정
-        int layerMask = 1 << LayerMask.NameToLayer(targetLayer);
-
-        // Player의 Collider를 일시적으로 비활성화
-        playerCol.enabled = false;
-
-        // PlayerController의 하단에서 아래로 Raycast 발사 (UpGround 레이어만 대상으로 함)
-        Vector2 rayStart = new Vector2(playerCol.bounds.center.x, playerCol.bounds.min.y);
-        RaycastHit2D hit = Physics2D.Raycast(rayStart, Vector2.down, 0.5f, layerMask);
-
-        // Player의 Collider를 다시 활성화
-        playerCol.enabled = true;
-
-        // UpGround 레이어에 해당하는 콜라이더를 찾았을 때만 처리
-        if (hit.collider != null && hit.collider.gameObject.layer == LayerMask.NameToLayer(targetLayer))
-        {
-            Debug.Log("Raycast Hit: " + hit.collider.name);
-            IgnoreCollider(playerCol, hit.collider);
-        }
-    }
-
-    public bool IsGrounded(Collider2D playerCol, ref bool wasGrounded)
+    public bool IsGrounded(Collider2D playerCol, ref bool wasGrounded, out int groundLayerInfo)
     {
         int combinedLayerMask = GroundLayer | UpGroundLayer;
         float extraHeight = 0.05f;
-        Vector2 boxSize = new Vector2(playerCol.bounds.size.x * 0.9f, extraHeight); // 콜라이더의 가로 길이의 일부와 추가 높이 사용
-        Vector2 boxCenter = new Vector2(playerCol.bounds.center.x, playerCol.bounds.min.y - extraHeight / 2); // 콜라이더 하단 중심 위치
+        Vector2 boxSize = new Vector2(playerCol.bounds.size.x * 0.9f, extraHeight);
+        Vector2 boxCenter = new Vector2(playerCol.bounds.center.x, playerCol.bounds.min.y - extraHeight / 2);
 
         Collider2D[] hits = Physics2D.OverlapBoxAll(boxCenter, boxSize, 0, combinedLayerMask);
-
         wasGrounded = hits.Length > 0;
+
+        // 초기화
+        groundLayerInfo = -1;
+
+        if (wasGrounded && hits.Length > 0)
+        {
+            // 첫 번째 충돌한 콜라이더의 레이어 정보를 반환
+            groundLayerInfo = hits[0].gameObject.layer;
+
+            // 충돌한 레이어 정보를 디버그 로그로 출력
+            //Debug.Log("Grounded on Layer: " + LayerMask.LayerToName(groundLayerInfo));
+        }
+
         return hits.Length > 0;
+    }
+
+
+    public void CheckAndUpdateConnectInteraction(Collider2D playerCol, Tilemap connectTilemap)
+    {
+        // 현재 플레이어 위치를 기반으로 밧줄 또는 사다리 타일의 셀 좌표를 얻습니다.
+        Vector3 playerPosition = playerCol.transform.position;
+        Vector3Int cellPosition = connectTilemap.WorldToCell(playerPosition);
+
+        // 해당 셀에 밧줄 또는 사다리 타일이 있는지 확인합니다.
+        if (connectTilemap.HasTile(cellPosition))
+        {
+            // 타일의 중심 월드 좌표를 계산합니다.
+            Vector3 tileCenter = connectTilemap.GetCellCenterWorld(cellPosition);
+
+            // 플레이어의 x좌표를 타일의 중심 x좌표로 설정합니다.
+            playerCol.transform.position = new Vector3(tileCenter.x, playerCol.transform.position.y, playerCol.transform.position.z);
+        }
     }
 
     public bool HasTileBelow(Collider2D playerCol, Tilemap tilemap)
     {
-        Vector3 footPosition = playerCol.bounds.center + new Vector3(0, -playerCol.bounds.extents.y - 0.1f, 0);  // Just below the feet
+        // 플레이어 콜라이더의 하단 중심 위치 아래에 위치하는 포인트를 계산합니다.
+        // 이 포인트는 플레이어의 발 바로 아래에 위치하게 됩니다.
+        Vector3 footPosition = playerCol.bounds.center - new Vector3(0, playerCol.bounds.extents.y + 0.1f, 0);
+
+        // 이 포인트를 타일맵의 셀 좌표로 변환합니다.
         Vector3Int cellPosition = tilemap.WorldToCell(footPosition);
+
+        // 해당 셀 좌표에 타일이 존재하는지 확인합니다.
         return tilemap.HasTile(cellPosition);
     }
+
 
     public bool HasTileAbove(Collider2D playerCol, Tilemap tilemap)
     {
-        Vector3 headPosition = playerCol.bounds.center + new Vector3(0, playerCol.bounds.extents.y + 0.1f, 0);  // Just above the head
+        // 플레이어 콜라이더의 상단 중심 위치 위에 위치하는 포인트를 계산합니다.
+        // 이 포인트는 플레이어의 머리 바로 위에 위치하게 됩니다.
+        Vector3 headPosition = playerCol.bounds.center + new Vector3(0, playerCol.bounds.extents.y + 0.1f, 0);
+
+        // 이 포인트를 타일맵의 셀 좌표로 변환합니다.
         Vector3Int cellPosition = tilemap.WorldToCell(headPosition);
+
+        // 해당 셀 좌표에 타일이 존재하는지 확인합니다.
         return tilemap.HasTile(cellPosition);
     }
 
-    public void CheckRopeInteraction(Collider2D playerCol, ref bool isOnRope, ref bool isRope, ref Vector3 ropeTileCenter)
+    // 특정 영역의 콜라이더를 반환하는 함수
+    public Collider2D[] GetSideColliders()
     {
-        CheckTileInteraction(playerCol, ref isOnRope, ref isRope, ref ropeTileCenter, RopeLayer, -0.2f);
+        // 여기서는 예시로 floor2Side를 반환합니다.
+        // 실제 구현에서는 필요한 콜라이더들을 배열로 반환합니다.
+        return new Collider2D[] { floor1SideTopCol };
     }
 
-    public void CheckLadderInteraction(Collider2D playerCol, ref bool isOnLadder, ref bool isLadder, ref Vector3 ladderTileCenter)
+    // 특정 타일이 있는지 확인하는 함수
+    public bool IsSpecificTile(Tilemap tilemap, Vector3Int tilePos)
     {
-        CheckTileInteraction(playerCol, ref isOnLadder, ref isLadder, ref ladderTileCenter, LadderLayer, 0);
+        // 주어진 타일맵에서 특정 셀 좌표에 타일이 존재하는지 확인합니다.
+        return tilemap.HasTile(tilePos);
     }
 
-    private void CheckTileInteraction(Collider2D playerCol, ref bool isOnTile, ref bool isTile, ref Vector3 tileCenter, LayerMask tileLayer, float offset)
+    public void AddIgnoredCollider(Collider2D collider)
     {
-        RaycastHit2D hit = Physics2D.BoxCast(playerCol.bounds.center, playerCol.bounds.size, 0f, Vector2.up, 0.02f, tileLayer);
+        if (!ignoredColliders.Contains(collider))
+        {
+            ignoredColliders.Add(collider);
+        }
+    }
+
+    public void RemoveIgnoredCollider(Collider2D collider)
+    {
+        if (ignoredColliders.Contains(collider))
+        {
+            ignoredColliders.Remove(collider);
+        }
+    }
+
+    public List<Collider2D> GetIgnoredColliders()
+    {
+        return ignoredColliders;
+    }
+
+    public void ClearIgnoredColliders()
+    {
+        ignoredColliders.Clear();
+    }
+
+    public Collider2D GetPhysicalColliderForStair(string stairTriggerName)
+    {
+        // 여기에 트리거 이름에 따라 실제 물리 콜라이더를 반환하는 로직을 구현하세요.
+        // 예: "Floor2 TriggerStairTop" 트리거에 대응하는 "Floor2 StairTop" 물리 콜라이더 등
+        switch (stairTriggerName)
+        {
+            case "Floor2 TriggerStairTop":
+                return floor2StairTopTilemapCol;
+            // 추가적인 계단에 대한 매핑이 필요한 경우 여기에 추가
+            default:
+                return null;
+        }
+    }
+
+    public bool IsPlayerOnFloor1Top(Transform playerPos, float raycastDistance)
+    {
+        // 플레이어의 위치에서 바로 아래로 Raycast를 발사
+        RaycastHit2D hit = Physics2D.Raycast(playerPos.position, Vector2.down, raycastDistance, GroundLayer);
 
         if (hit.collider != null)
         {
-            isOnTile = true;
-            var tilemap = hit.collider.GetComponent<Tilemap>();
-            Vector3Int cellPosition = tilemap.WorldToCell(hit.point);
-            Vector3 actualTileCenter = tilemap.GetCellCenterWorld(cellPosition);
-            tileCenter = actualTileCenter + new Vector3(offset, 0, 0);
+            // Raycast가 GroundLayer에 닿았고, 해당 오브젝트의 이름이 "Floor1 Top"인지 확인
+            return (hit.collider.gameObject.name == "Floor1 Top" || hit.collider.gameObject.name == "Floor1 SideTop");
+        }
+
+        return false;
+    }
+
+    public bool IsPlayerOnFloor2Top(Transform playerPos, float raycastDistance)
+    {
+        // 플레이어의 위치에서 바로 아래로 Raycast를 발사
+        RaycastHit2D hit = Physics2D.Raycast(playerPos.position, Vector2.down, raycastDistance, UpGroundLayer);
+
+        if (hit.collider != null)
+        {
+            // Raycast가 GroundLayer에 닿았고, 해당 오브젝트의 이름이 "Floor1 Top"인지 확인
+            return (hit.collider.gameObject.name == "Floor2 TriggerStairTop");
+        }
+
+        return false;
+    }
+
+    public void PrintIgnoredColliders()
+    {
+        var ignoredColliders = GetIgnoredColliders();
+        if (ignoredColliders.Count == 0)
+        {
+            Debug.Log("무시된 콜라이더가 없습니다.");
         }
         else
         {
-            isOnTile = false;
-            isTile = false;
+            foreach (var collider in ignoredColliders)
+            {
+                if (collider != null)
+                {
+                    Debug.Log("무시된 콜라이더: " + collider.GetComponent<Collider2D>().name);
+                }
+            }
         }
     }
 }
